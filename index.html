@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#020202">
+    <title>Atheer Manga | أثير للمانجا - النظام المتكامل v6.2.1</title>
+    
+    <script async crossorigin="anonymous" data-clerk-publishable-key="pk_test_cG9wdWxhci10ZXJyYXBpbi0xNy5jbGVyay5hY2NvdW50cy5kZXYk" src="https://popular-terrapin-17.clerk.accounts.dev/npm/@clerk/clerk-js@latest/dist/clerk.browser.js" type="text/javascript"></script>
+
+    <style>
+        /* ==========================================================
+           1. DESIGN SYSTEM & ARCHITECTURE (FLAT DESIGN)
+           ==========================================================
+           تم التخلص من جميع تأثيرات Glassmorphism والاعتماد على 
+           تصميم مسطح (Flat) وألوان صلبة لتجربة أنظف وأسرع.
+        */
+        :root {
+            --main-bg: #020202;
+            --surface-deep: #0a0a0a;
+            --surface-card: #121212;
+            --surface-hover: #1e1e1e;
+            --surface-modal: #0f0f0f;
+            --accent-primary: #00d4ff; 
+            --accent-secondary: #9d00ff;
+            --accent-glow: rgba(0, 212, 255, 0.3);
+            --text-pure: #ffffff;
+            --text-muted: #888888;
+            --border-thin: #222222;
+            --radius-lg: 16px; /* تقليل الانحناء قليلاً ليتناسب مع Flat Design */
+            --radius-md: 8px;
+            --sidebar-w: 320px;
+            --transition-main: 0.3s ease-in-out;
+            --safe-top: env(safe-area-inset-top);
+            --danger: #ff4757;
+            --success: #2ed573;
+        }
+
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            outline: none;
+            -webkit-tap-highlight-color: transparent; 
+        }
+        
+        body {
+            background-color: var(--main-bg);
+            color: var(--text-pure);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+            user-select: none;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* CUSTOM SCROLLBAR - FLAT STYLE */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--main-bg); }
+        ::-webkit-scrollbar-thumb { 
+            background: var(--surface-hover); 
+            border-radius: 0px; 
+        }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-primary); }
+
+        /* ==========================================================
+           2. ADVANCED ANIMATIONS
+           ==========================================================
+        */
+        @keyframes skeleton-pulse { 0% { background-color: var(--surface-card); } 50% { background-color: var(--surface-hover); } 100% { background-color: var(--surface-card); } }
+        @keyframes fadeInScale { from { opacity: 0; transform: scale(0.98) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        @keyframes toast-in { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .fade-in { animation: fadeInScale 0.5s ease-out forwards; }
+
+        /* ==========================================================
+           3. UI LAYOUT & COMPONENTS
+           ==========================================================
+        */
+        
+        .hero-banner {
+            height: 450px;
+            background: linear-gradient(to bottom, transparent 0%, var(--main-bg) 100%), 
+                        url('https://images.unsplash.com/photo-1578632738980-43314a774492?q=80&w=2070&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 60px 5%;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border-thin);
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: var(--text-pure); /* لون صلب مسطح */
+        }
+
+        /* Sidebar - Solid Background, No Blur */
+        .atheer-sidebar {
+            position: fixed;
+            top: 0;
+            right: calc(var(--sidebar-w) * -1);
+            width: var(--sidebar-w);
+            height: 100vh;
+            background: var(--surface-deep);
+            z-index: 5000;
+            transition: right var(--transition-main);
+            border-left: 2px solid var(--border-thin);
+            padding: 40px 25px;
+            overflow-y: auto;
+        }
+        .atheer-sidebar.active { right: 0; }
+
+        .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.9); /* شفافية صلبة بدون Blur */
+            z-index: 4500;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .sidebar-overlay.show { display: block; opacity: 1; }
+
+        /* Flat Buttons */
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            padding: 14px 18px;
+            color: var(--text-muted);
+            border-radius: var(--radius-md);
+            margin-bottom: 8px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+            font-size: 0.95rem;
+            background: transparent;
+        }
+        .nav-btn:hover { background: var(--surface-hover); color: var(--text-pure); }
+        .nav-btn.active { background: var(--surface-card); color: var(--accent-primary); border-color: var(--border-thin); }
+        .nav-btn.primary-btn { background: var(--accent-primary); color: #000; font-weight: 700; border: none; }
+        .nav-btn.primary-btn:hover { background: #00bfff; }
+        .nav-btn.danger-btn { background: var(--surface-card); color: var(--danger); border: 2px solid var(--border-thin); }
+        .nav-btn.danger-btn:hover { border-color: var(--danger); }
+
+        .manga-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .manga-card {
+            background: var(--surface-card);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            border: 2px solid var(--border-thin);
+            transition: 0.2s ease;
+            cursor: pointer;
+            position: relative;
+        }
+        .manga-card:hover { transform: translateY(-5px); border-color: var(--accent-primary); }
+        
+        .manga-card .cover-wrapper { position: relative; aspect-ratio: 2/3; overflow: hidden; background: var(--surface-hover); }
+        .manga-card .cover { width: 100%; height: 100%; object-fit: cover; transition: 0.3s ease; }
+        .manga-card:hover .cover { transform: scale(1.05); }
+
+        .card-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: var(--surface-deep);
+            padding: 6px 12px;
+            border-radius: var(--radius-md);
+            font-size: 11px;
+            font-weight: bold;
+            z-index: 5;
+            color: var(--accent-primary);
+            border: 2px solid var(--border-thin);
+        }
+
+        /* ==========================================================
+           4. HEADER & NOTIFICATIONS (SOLID BACKGROUNDS)
+           ==========================================================
+        */
+        header {
+            height: 85px;
+            background: var(--surface-deep); /* خلفية صلبة بدون Glassmorphism */
+            border-bottom: 2px solid var(--border-thin);
+            display: flex;
+            align-items: center;
+            padding: 0 5%;
+            position: sticky;
+            top: 0;
+            z-index: 3500;
+        }
+
+        .search-wrapper { flex-grow: 1; max-width: 600px; position: relative; }
+        .search-wrapper input {
+            width: 100%;
+            background: var(--surface-card);
+            border: 2px solid var(--border-thin);
+            padding: 14px 25px;
+            border-radius: var(--radius-md); /* زوايا مسطحة */
+            color: #fff;
+            font-size: 0.95rem;
+            transition: 0.3s;
+        }
+        .search-wrapper input:focus { border-color: var(--accent-primary); background: var(--main-bg); }
+
+        /* User Profile Area in Header */
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-mini-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 15px;
+            background: var(--surface-card);
+            border: 2px solid var(--border-thin);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .user-mini-profile:hover { border-color: var(--accent-primary); }
+        .user-avatar { width: 35px; height: 35px; border-radius: 50%; background: var(--surface-hover); object-fit: cover; }
+
+        .atheer-toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--surface-card);
+            border: 2px solid var(--accent-primary);
+            padding: 15px 25px;
+            border-radius: var(--radius-md);
+            z-index: 9999;
+            animation: toast-in 0.3s ease forwards;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-weight: bold;
+        }
+
+        /* ==========================================================
+           5. READER & MODALS (FLAT DESIGN)
+           ==========================================================
+        */
+        .flat-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.95); /* صلب بدون بلور */
+            z-index: 7000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .flat-modal-content {
+            background: var(--surface-modal);
+            width: 95%;
+            max-width: 700px;
+            height: 85vh;
+            border-radius: var(--radius-lg);
+            border: 2px solid var(--border-thin);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 25px 30px;
+            border-bottom: 2px solid var(--border-thin);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--surface-deep);
+        }
+
+        #reader-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--main-bg);
+            z-index: 8000;
+            display: none;
+            flex-direction: column;
+        }
+
+        .reader-header {
+            height: 70px;
+            background: var(--surface-deep);
+            border-bottom: 2px solid var(--border-thin);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 4%;
+        }
+
+        .reader-scroll-area {
+            flex-grow: 1;
+            overflow-y: auto;
+            background: var(--main-bg);
+            scroll-behavior: auto; /* إزالة smooth scroll لأداء أفضل في الموبايل */
+        }
+        .reader-scroll-area img { display: block; width: 100%; max-width: 850px; margin: 0 auto; }
+
+        /* ==========================================================
+           6. ACCOUNT & SETTINGS PANELS
+           ==========================================================
+        */
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .setting-card {
+            background: var(--surface-card);
+            padding: 15px;
+            border-radius: var(--radius-md);
+            text-align: center;
+            cursor: pointer;
+            border: 2px solid var(--border-thin);
+            font-weight: bold;
+        }
+        .setting-card.active { border-color: var(--accent-primary); background: var(--surface-hover); }
+
+        .profile-stat-box {
+            background: var(--surface-card);
+            border: 2px solid var(--border-thin);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .profile-stat-number { font-size: 2rem; color: var(--accent-primary); font-weight: 900; }
+
+        #boot-screen {
+            position: fixed;
+            inset: 0;
+            background: var(--main-bg);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .loader-ring {
+            width: 45px;
+            height: 45px;
+            border: 4px solid var(--surface-hover);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite; /* حركة خطية بسيطة */
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 768px) {
+            .hero-title { font-size: 2.2rem; }
+            .hero-banner { height: 350px; }
+            header { padding: 15px 5%; height: auto; flex-direction: column; gap: 15px; }
+            .search-wrapper { width: 100%; }
+            .header-actions { width: 100%; justify-content: space-between; }
+            .manga-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+            .atheer-sidebar { width: 85%; }
+            .settings-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="boot-screen">
+        <div class="loader-ring"></div>
+        <h2 style="margin-top: 30px; letter-spacing: 5px; color: var(--text-pure); font-weight: 900;">ATHEER</h2>
+        <p id="boot-log" style="font-size: 11px; color: var(--text-muted); margin-top: 15px; text-transform: uppercase;">Initializing System...</p>
+    </div>
+
+    <div class="sidebar-overlay" id="sidebar-dimmer" onclick="AtheerUI.toggleSidebar(false)"></div>
+    <aside class="atheer-sidebar" id="sidebar">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
+            <span style="font-size: 1.4rem; font-weight: 900; color: var(--text-pure);">القائمة التقنية</span>
+            <span style="font-size: 2.2rem; cursor: pointer; line-height: 1;" onclick="AtheerUI.toggleSidebar(false)">&times;</span>
+        </div>
+
+        <div id="history-section" style="margin-bottom: 35px; display: none;">
+            <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px; font-weight: bold;">آخر قراءة</p>
+            <div id="resume-btn" class="nav-btn" style="background: var(--surface-card); border-right: 4px solid var(--accent-primary);">
+                <div style="display: flex; flex-direction: column; width: 100%;">
+                    <span id="hist-title" style="color: #fff; font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">--</span>
+                    <span id="hist-ch" style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">الفصل --</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-section" style="margin-bottom: 35px;">
+            <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 15px; font-weight: bold;">التنقل الأساسي</p>
+            <div class="nav-btn active" onclick="AtheerApp.resetToHome()">الرئيسية</div>
+            <div class="nav-btn" onclick="AtheerApp.showFavorites()">المفضلة</div>
+            <div class="nav-btn" onclick="AtheerApp.getLucky()">استكشاف عشوائي</div>
+            <div class="nav-btn" onclick="AtheerUI.showModal('settings-modal')">إعدادات النظام</div>
+        </div>
+
+        <div class="nav-section">
+            <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 15px; font-weight: bold;">تصنيفات الأنمي والمانجا</p>
+            <div id="category-box" style="display: flex; flex-direction: column; gap: 4px;"></div>
+        </div>
+    </aside>
+
+    <header>
+        <div style="display: flex; align-items: center; gap: 20px; width: 100%; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div style="cursor: pointer; font-size: 1.8rem; color: var(--text-pure);" onclick="AtheerUI.toggleSidebar(true)">☰</div>
+                <h1 style="cursor:pointer; font-weight: 900; letter-spacing: 1px;" onclick="AtheerApp.resetToHome()">Atheer<span style="color:var(--accent-primary)">.</span></h1>
+            </div>
+            
+            <div class="search-wrapper">
+                <input type="text" id="main-search" placeholder="ابحث عن مانجا، مانهوا...">
+            </div>
+            
+            <div class="header-actions" id="user-portal">
+                <div id="auth-loading" class="loader-ring" style="width: 20px; height: 20px; border-width: 2px;"></div>
+                
+                <button id="auth-trigger" class="nav-btn primary-btn" style="margin:0; display: none;">دخول / تسجيل</button>
+                
+                <div id="user-profile-trigger" class="user-mini-profile" style="display: none;" onclick="AtheerUI.showModal('account-modal')">
+                    <img id="user-avatar-img" src="" class="user-avatar" alt="User">
+                    <span id="user-name-display" style="font-size: 13px; font-weight: bold;">--</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main id="primary-view">
+        <section class="hero-banner" id="hero-section">
+            <div class="fade-in">
+                <span style="background: var(--surface-card); color: var(--accent-primary); border: 2px solid var(--border-thin); padding: 5px 15px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-bottom: 15px; display: inline-block;">أثير v6.2.1 | Flat UI</span>
+                <h2 class="hero-title">عالم المانجا <br>بين يديك</h2>
+            </div>
+        </section>
+
+        <div style="padding: 0 5% 60px;">
+            <div id="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                <h2 id="current-view-title" style="font-size: 1.6rem; border-right: 6px solid var(--accent-primary); padding-right: 15px; font-weight: 900;">أحدث الإضافات</h2>
+            </div>
+
+            <div class="manga-grid" id="main-grid"></div>
+
+            <div id="global-loader" style="text-align: center; padding: 80px; display: none;">
+                <div class="loader-ring" style="width: 35px; height: 35px; display: inline-block;"></div>
+            </div>
+        </div>
+    </main>
+
+    <div id="details-modal" class="flat-modal">
+        <div class="flat-modal-content fade-in">
+            <div class="modal-header">
+                <h3 id="modal-manga-name" style="font-size: 1.4rem; color: var(--text-pure); font-weight: bold;">--</h3>
+                <span style="font-size: 2rem; cursor: pointer; color: var(--text-muted); line-height: 1;" onclick="AtheerUI.hideModal('details-modal')">&times;</span>
+            </div>
+            <div style="padding: 15px 30px; display: flex; gap: 10px; background: var(--surface-card); border-bottom: 2px solid var(--border-thin);">
+                <button class="nav-btn" style="flex: 1; justify-content: center; margin: 0;" id="fav-toggle-btn">إضافة للمفضلة</button>
+                <button class="nav-btn" style="flex: 1; justify-content: center; margin: 0;" onclick="AtheerApp.shareManga()">مشاركة الرابط</button>
+            </div>
+            <div id="chapters-container" style="flex-grow: 1; overflow-y: auto; padding: 30px; background: var(--surface-deep);"></div>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="flat-modal">
+        <div style="width: 90%; max-width: 500px; background: var(--surface-modal); padding: 40px; border-radius: var(--radius-lg); border: 2px solid var(--border-thin);">
+            <h2 style="color: var(--text-pure); margin-bottom: 10px;">إعدادات النظام</h2>
+            <p style="font-size: 13px; color: var(--text-muted);">تحكم في جودة الصور وتجربة القراءة.</p>
+            
+            <div class="settings-grid" style="margin-top: 30px;">
+                <div id="btn-qual-data" class="setting-card active" onclick="AtheerApp.setQuality('data')">جودة عالية (أصلية)</div>
+                <div id="btn-qual-saver" class="setting-card" onclick="AtheerApp.setQuality('data-saver')">توفير البيانات (مضغوطة)</div>
+            </div>
+            
+            <button class="nav-btn primary-btn" style="width: 100%; margin-top: 30px; justify-content: center;" onclick="AtheerUI.hideModal('settings-modal')">حفظ وإغلاق</button>
+        </div>
+    </div>
+
+    <div id="account-modal" class="flat-modal">
+        <div style="width: 90%; max-width: 400px; background: var(--surface-modal); border-radius: var(--radius-lg); border: 2px solid var(--border-thin); overflow: hidden;">
+            <div style="background: var(--surface-deep); padding: 30px; text-align: center; border-bottom: 2px solid var(--border-thin);">
+                <img id="modal-avatar" src="" style="width: 80px; height: 80px; border-radius: 50%; border: 4px solid var(--surface-card); margin-bottom: 15px;">
+                <h2 id="modal-username" style="color: var(--text-pure);">--</h2>
+                <p id="modal-email" style="font-size: 12px; color: var(--text-muted);">--</p>
+            </div>
+            <div style="padding: 30px;">
+                <div class="profile-stat-box">
+                    <div class="profile-stat-number" id="stat-favs">0</div>
+                    <div style="font-size: 12px; color: var(--text-muted); font-weight: bold;">مانجا مفضلة</div>
+                </div>
+                
+                <button class="nav-btn primary-btn" style="width: 100%; justify-content: center; margin-bottom: 10px;" onclick="Clerk.openUserProfile()">تعديل بيانات الحساب</button>
+                <button class="nav-btn danger-btn" style="width: 100%; justify-content: center; margin: 0;" onclick="AtheerAuth.signOut()">تسجيل الخروج</button>
+            </div>
+            <div style="padding: 15px; text-align: center; background: var(--surface-deep); border-top: 2px solid var(--border-thin);">
+                <button class="nav-btn" style="width: 100%; justify-content: center; margin: 0; border: none;" onclick="AtheerUI.hideModal('account-modal')">إغلاق نافذة الحساب</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="reader-overlay">
+        <div class="reader-header">
+            <button class="nav-btn" onclick="AtheerApp.closeReader()" style="background: var(--surface-card); border: 2px solid var(--border-thin);">إنهاء القراءة</button>
+            <div style="text-align: center;">
+                <p id="reader-manga-title" style="font-size: 11px; color: var(--text-muted); font-weight: bold;">--</p>
+                <p id="reader-current-ch" style="font-weight: 900; color: var(--text-pure);">الفصل --</p>
+            </div>
+            <button class="nav-btn" style="background: var(--surface-card); border: 2px solid var(--border-thin);" onclick="AtheerApp.reOpenDetailsFromReader()">الفصول</button>
+        </div>
+        <div class="reader-scroll-area" id="reader-pages-box"></div>
+    </div>
+
+    <script>
+        /**
+         * ATHEER CORE ENGINE v6.2.1
+         * Architecture: Flat Modular Design
+         * Developer: Haitheem
+         */
+
+        const ATHEER_CONFIG = {
+            API: 'https://api.mangadex.org',
+            CDN: 'https://uploads.mangadex.org',
+            LIMIT: 24,
+            OFFSET: 0,
+            ACTIVE_ID: null,
+            ACTIVE_TITLE: '',
+            CHAPTERS: [],
+            GENRE: null,
+            SEARCH: '',
+            LOADING: false,
+            QUALITY: localStorage.getItem('atheer_quality') || 'data',
+            FAVORITES: JSON.parse(localStorage.getItem('atheer_favs') || '[]')
+        };
+
+        // --- UI Controller ---
+        const AtheerUI = {
+            toggleSidebar(show) {
+                document.getElementById('sidebar').classList.toggle('active', show);
+                document.getElementById('sidebar-dimmer').classList.toggle('show', show);
+            },
+            showModal(id) {
+                this.toggleSidebar(false);
+                document.getElementById(id).style.display = 'flex';
+            },
+            hideModal(id) {
+                document.getElementById(id).style.display = 'none';
+            },
+            toast(msg, type = 'info') {
+                const t = document.createElement('div');
+                t.className = 'atheer-toast';
+                const icon = type === 'success' ? '✅' : (type === 'error' ? '❌' : '⚡');
+                t.innerHTML = `<span>${icon}</span> <span>${msg}</span>`;
+                document.body.appendChild(t);
+                setTimeout(() => t.remove(), 4000);
+            },
+            initQualityButtons() {
+                document.querySelectorAll('.setting-card').forEach(c => c.classList.remove('active'));
+                const targetId = ATHEER_CONFIG.QUALITY === 'data' ? 'btn-qual-data' : 'btn-qual-saver';
+                document.getElementById(targetId).classList.add('active');
+            }
+        };
+
+        // --- Authentication Controller (Clerk) ---
+        const AtheerAuth = {
+            async init() {
+                try {
+                    await Clerk.load();
+                    this.updateUI();
+                    
+                    // Listen to auth changes
+                    Clerk.addListener(({ user }) => {
+                        this.updateUI();
+                    });
+                } catch(e) {
+                    console.error("Clerk Init Error:", e);
+                    document.getElementById('auth-loading').style.display = 'none';
+                    AtheerUI.toast("تعذر الاتصال بنظام الحسابات حالياً", "error");
+                }
+            },
+
+            updateUI() {
+                const loading = document.getElementById('auth-loading');
+                const triggerBtn = document.getElementById('auth-trigger');
+                const profileBtn = document.getElementById('user-profile-trigger');
+                
+                loading.style.display = 'none';
+
+                if (Clerk.user) {
+                    // User is Logged In
+                    triggerBtn.style.display = 'none';
+                    profileBtn.style.display = 'flex';
+                    
+                    const name = Clerk.user.firstName || Clerk.user.username || 'مستخدم أثير';
+                    const avatar = Clerk.user.imageUrl;
+                    const email = Clerk.user.primaryEmailAddress?.emailAddress || 'لا يوجد بريد إلكتروني';
+                    
+                    // Update Header
+                    document.getElementById('user-name-display').innerText = name;
+                    document.getElementById('user-avatar-img').src = avatar;
+                    
+                    // Update Account Modal
+                    document.getElementById('modal-username').innerText = name;
+                    document.getElementById('modal-email').innerText = email;
+                    document.getElementById('modal-avatar').src = avatar;
+                    document.getElementById('stat-favs').innerText = ATHEER_CONFIG.FAVORITES.length;
+
+                } else {
+                    // Guest User
+                    profileBtn.style.display = 'none';
+                    triggerBtn.style.display = 'flex';
+                    triggerBtn.onclick = () => Clerk.openSignIn();
+                }
+            },
+
+            async signOut() {
+                AtheerUI.hideModal('account-modal');
+                await Clerk.signOut();
+                AtheerUI.toast("تم تسجيل الخروج بنجاح", "success");
+            }
+        };
+
+        // --- Core Application Controller ---
+        const AtheerApp = {
+            async initialize() {
+                document.getElementById('boot-log').innerText = "Starting Auth Service...";
+                await AtheerAuth.init();
+
+                document.getElementById('boot-log').innerText = "Fetching Content Database...";
+                await this.loadTags();
+                await this.fetchManga(true);
+                this.checkHistory();
+                this.bindEvents();
+                AtheerUI.initQualityButtons();
+
+                if(ATHEER_CONFIG.FAVORITES.length > 0) {
+                    AtheerUI.toast("مكتبتك جاهزة للقراءة!", "success");
+                }
+
+                // Hide Boot Screen
+                setTimeout(() => {
+                    document.getElementById('boot-screen').style.opacity = '0';
+                    setTimeout(() => document.getElementById('boot-screen').style.display = 'none', 500);
+                }, 800);
+            },
+
+            async fetchManga(reset = false) {
+                if (ATHEER_CONFIG.LOADING) return;
+                ATHEER_CONFIG.LOADING = true;
+
+                if (reset) {
+                    ATHEER_CONFIG.OFFSET = 0;
+                    document.getElementById('main-grid').innerHTML = '';
+                    document.getElementById('global-loader').style.display = 'block';
+                }
+
+                let url = `${ATHEER_CONFIG.API}/manga?limit=${ATHEER_CONFIG.LIMIT}&offset=${ATHEER_CONFIG.OFFSET}&includes[]=cover_art&contentRating[]=safe`;
+                
+                if (ATHEER_CONFIG.SEARCH) url += `&title=${encodeURIComponent(ATHEER_CONFIG.SEARCH)}`;
+                else if (ATHEER_CONFIG.GENRE) url += `&includedTags[]=${ATHEER_CONFIG.GENRE}`;
+                else url += `&order[followedCount]=desc`;
+
+                try {
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    if (reset) document.getElementById('main-grid').innerHTML = '';
+                    this.renderCards(data.data);
+                    ATHEER_CONFIG.OFFSET += ATHEER_CONFIG.LIMIT;
+                } catch (e) {
+                    AtheerUI.toast("فشل في جلب البيانات. تحقق من اتصالك.", "error");
+                } finally {
+                    ATHEER_CONFIG.LOADING = false;
+                    document.getElementById('global-loader').style.display = 'none';
+                }
+            },
+
+            renderCards(list) {
+                const grid = document.getElementById('main-grid');
+                if(!list || list.length === 0) {
+                    if(ATHEER_CONFIG.OFFSET === 0) grid.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#888;">لم يتم العثور على نتائج.</p>';
+                    return;
+                }
+
+                list.forEach(m => {
+                    const id = m.id;
+                    const title = m.attributes.title.en || Object.values(m.attributes.title)[0] || 'غير معروف';
+                    const cover = m.relationships.find(r => r.type === 'cover_art');
+                    const fileName = cover ? cover.attributes.fileName : '';
+                    const imgUrl = fileName ? `${ATHEER_CONFIG.CDN}/covers/${id}/${fileName}.256.jpg` : 'https://via.placeholder.com/256x400?text=No+Cover';
+
+                    const el = document.createElement('div');
+                    el.className = 'manga-card fade-in';
+                    el.innerHTML = `
+                        <div class="cover-wrapper">
+                            <img src="${imgUrl}" class="cover" loading="lazy" onerror="this.src='https://via.placeholder.com/256x400?text=Error'">
+                        </div>
+                        <div style="padding: 15px; background: var(--surface-card);">
+                            <h4 style="font-size: 13px; height: 40px; overflow: hidden; color: var(--text-pure);">${title}</h4>
+                            <p style="font-size: 10px; color: var(--text-muted); margin-top: 5px; font-weight: bold;">MangaDex API</p>
+                        </div>
+                    `;
+                    el.onclick = () => this.openManga(id, title);
+                    grid.appendChild(el);
+                });
+            },
+
+            async openManga(id, title) {
+                ATHEER_CONFIG.ACTIVE_ID = id;
+                ATHEER_CONFIG.ACTIVE_TITLE = title;
+                const list = document.getElementById('chapters-container');
+                const favBtn = document.getElementById('fav-toggle-btn');
+                
+                document.getElementById('modal-manga-name').innerText = title;
+                AtheerUI.showModal('details-modal');
+                list.innerHTML = '<div style="text-align:center; padding:50px;"><div class="loader-ring" style="display:inline-block;"></div></div>';
+
+                const isFav = ATHEER_CONFIG.FAVORITES.some(f => f.id === id);
+                favBtn.innerText = isFav ? 'حذف من المفضلة' : 'إضافة للمفضلة';
+                favBtn.className = isFav ? 'nav-btn danger-btn' : 'nav-btn primary-btn';
+                favBtn.onclick = () => this.toggleFavorite(id, title);
+
+                try {
+                    const res = await fetch(`${ATHEER_CONFIG.API}/manga/${id}/feed?translatedLanguage[]=ar&translatedLanguage[]=en&order[chapter]=desc&limit=500`);
+                    const json = await res.json();
+                    ATHEER_CONFIG.CHAPTERS = json.data;
+                    
+                    if (ATHEER_CONFIG.CHAPTERS.length === 0) {
+                        list.innerHTML = '<p style="text-align:center; color:var(--text-muted);">لا توجد فصول مترجمة متاحة حالياً.</p>';
+                        return;
+                    }
+
+                    list.innerHTML = ATHEER_CONFIG.CHAPTERS.map((ch, i) => `
+                        <div class="nav-btn" onclick="AtheerApp.startReader(${i})" style="justify-content: space-between; border: 2px solid var(--border-thin);">
+                            <span style="font-weight:bold; color:var(--text-pure);">الفصل ${ch.attributes.chapter || '0'}</span>
+                            <span style="font-size:10px; padding:3px 8px; background:var(--surface-deep); border-radius:4px; font-weight:bold;">
+                                ${ch.attributes.translatedLanguage.toUpperCase()}
+                            </span>
+                        </div>
+                    `).join('');
+                } catch(e) { list.innerHTML = '<p style="text-align:center; color:var(--danger);">خطأ في جلب بيانات الفصول.</p>'; }
+            },
+
+            async startReader(idx) {
+                const ch = ATHEER_CONFIG.CHAPTERS[idx];
+                const box = document.getElementById('reader-pages-box');
+                document.getElementById('reader-overlay').style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+                document.getElementById('reader-manga-title').innerText = ATHEER_CONFIG.ACTIVE_TITLE;
+                document.getElementById('reader-current-ch').innerText = `الفصل ${ch.attributes.chapter}`;
+                box.innerHTML = '<div style="text-align:center; padding:100px;"><div class="loader-ring" style="display:inline-block;"></div></div>';
+
+                try {
+                    const res = await fetch(`${ATHEER_CONFIG.API}/at-home/server/${ch.id}`);
+                    const json = await res.json();
+                    const qualityKey = ATHEER_CONFIG.QUALITY === 'data' ? 'data' : 'dataSaver';
+                    
+                    box.innerHTML = json.chapter[qualityKey].map(img => `
+                        <img src="${json.baseUrl}/${qualityKey}/${json.chapter.hash}/${img}" loading="lazy" style="display:block; width:100%; margin-bottom:0px;">
+                    `).join('');
+                    
+                    this.saveHistory(ATHEER_CONFIG.ACTIVE_ID, ATHEER_CONFIG.ACTIVE_TITLE, idx, ch.attributes.chapter);
+                    box.scrollTop = 0;
+                } catch(e) { 
+                    AtheerUI.toast("فشل تحميل صفحات الفصل، الخادم لا يستجيب.", "error"); 
+                    this.closeReader();
+                }
+            },
+
+            setQuality(q) {
+                ATHEER_CONFIG.QUALITY = q;
+                localStorage.setItem('atheer_quality', q);
+                AtheerUI.initQualityButtons();
+                AtheerUI.toast(`تم ضبط الجودة على: ${q === 'data' ? 'عالية' : 'اقتصادية'}`);
+            },
+
+            toggleFavorite(id, title) {
+                const idx = ATHEER_CONFIG.FAVORITES.findIndex(f => f.id === id);
+                if(idx > -1) {
+                    ATHEER_CONFIG.FAVORITES.splice(idx, 1);
+                    AtheerUI.toast("تمت الإزالة من المفضلة", "info");
+                } else {
+                    ATHEER_CONFIG.FAVORITES.push({id, title});
+                    AtheerUI.toast("تمت الإضافة للمفضلة بنجاح", "success");
+                }
+                localStorage.setItem('atheer_favs', JSON.stringify(ATHEER_CONFIG.FAVORITES));
+                
+                // تحديث واجهة الحساب إذا كانت مفتوحة
+                const statEl = document.getElementById('stat-favs');
+                if(statEl) statEl.innerText = ATHEER_CONFIG.FAVORITES.length;
+                
+                this.openManga(id, title); // إعادة تحديث الزر
+            },
+
+            showFavorites() {
+                AtheerUI.toggleSidebar(false);
+                if (ATHEER_CONFIG.FAVORITES.length === 0) {
+                    AtheerUI.toast("قائمة المفضلة فارغة حالياً.", "info");
+                    return;
+                }
+                
+                document.getElementById('current-view-title').innerText = 'المفضلة الخاصة بك';
+                document.getElementById('hero-section').style.display = 'none';
+                const grid = document.getElementById('main-grid');
+                grid.innerHTML = '';
+                
+                // إنشاء عرض محلي للمفضلة
+                ATHEER_CONFIG.FAVORITES.forEach(f => {
+                    const el = document.createElement('div');
+                    el.className = 'manga-card fade-in';
+                    el.innerHTML = `
+                        <div style="padding: 30px 15px; text-align: center; background: var(--surface-card); height: 100%; border-bottom: 4px solid var(--accent-primary);">
+                            <h4 style="font-size: 14px; color: var(--text-pure); margin-bottom: 10px;">${f.title}</h4>
+                            <button class="nav-btn primary-btn" style="width: 100%; justify-content: center; margin: 0;">قراءة</button>
+                        </div>
+                    `;
+                    el.onclick = () => this.openManga(f.id, f.title);
+                    grid.appendChild(el);
+                });
+            },
+
+            shareManga() {
+                const text = `استمتع بقراءة "${ATHEER_CONFIG.ACTIVE_TITLE}" على أثير للمانجا!`;
+                if(navigator.share) {
+                    navigator.share({ title: 'Atheer Manga', text: text, url: window.location.href });
+                } else {
+                    navigator.clipboard.writeText(text);
+                    AtheerUI.toast("تم نسخ رابط المشاركة بنجاح!", "success");
+                }
+            },
+
+            async loadTags() {
+                try {
+                    const res = await fetch(`${ATHEER_CONFIG.API}/manga/tag`);
+                    const json = await res.json();
+                    const box = document.getElementById('category-box');
+                    json.data.slice(0, 15).forEach(tag => {
+                        const btn = document.createElement('div');
+                        btn.className = 'nav-btn';
+                        btn.innerHTML = `<span style="font-weight:bold;"># ${tag.attributes.name.en}</span>`;
+                        btn.onclick = () => {
+                            ATHEER_CONFIG.GENRE = tag.id;
+                            ATHEER_CONFIG.SEARCH = '';
+                            document.getElementById('current-view-title').innerText = `تصنيف: ${tag.attributes.name.en}`;
+                            AtheerUI.toggleSidebar(false);
+                            this.fetchManga(true);
+                        };
+                        box.appendChild(btn);
+                    });
+                } catch(e) { console.warn("Tags load failed"); }
+            },
+
+            saveHistory(id, title, idx, label) {
+                const data = { id, title, idx, label, t: Date.now() };
+                localStorage.setItem('atheer_history', JSON.stringify(data));
+                this.checkHistory();
+            },
+
+            checkHistory() {
+                const h = localStorage.getItem('atheer_history');
+                if(h) {
+                    const d = JSON.parse(h);
+                    document.getElementById('history-section').style.display = 'block';
+                    document.getElementById('hist-title').innerText = d.title;
+                    document.getElementById('hist-ch').innerText = `الفصل ${d.label}`;
+                    document.getElementById('resume-btn').onclick = () => {
+                        this.openManga(d.id, d.title).then(() => this.startReader(d.idx));
+                    };
+                }
+            },
+
+            resetToHome() {
+                ATHEER_CONFIG.GENRE = null;
+                ATHEER_CONFIG.SEARCH = '';
+                document.getElementById('main-search').value = '';
+                document.getElementById('current-view-title').innerText = 'أحدث الإضافات';
+                document.getElementById('hero-section').style.display = 'flex';
+                AtheerUI.toggleSidebar(false);
+                this.fetchManga(true);
+            },
+
+            async getLucky() {
+                AtheerUI.toggleSidebar(false);
+                AtheerUI.toast("نبحث عن مانجا عشوائية لك...");
+                try {
+                    const res = await fetch(`${ATHEER_CONFIG.API}/manga/random?includes[]=cover_art`);
+                    const json = await res.json();
+                    this.openManga(json.data.id, json.data.attributes.title.en || 'Random Manga');
+                } catch(e) { AtheerUI.toast("حدث خطأ في جلب المانجا العشوائية", "error"); }
+            },
+
+            bindEvents() {
+                let timer;
+                document.getElementById('main-search').addEventListener('input', (e) => {
+                    clearTimeout(timer);
+                    timer = setTimeout(() => {
+                        ATHEER_CONFIG.SEARCH = e.target.value.trim();
+                        if(ATHEER_CONFIG.SEARCH) {
+                            document.getElementById('hero-section').style.display = 'none';
+                            document.getElementById('current-view-title').innerText = `نتائج البحث: ${ATHEER_CONFIG.SEARCH}`;
+                        } else {
+                            document.getElementById('hero-section').style.display = 'flex';
+                            document.getElementById('current-view-title').innerText = 'أحدث الإضافات';
+                        }
+                        this.fetchManga(true);
+                    }, 800);
+                });
+
+                // Infinite Scroll Logic
+                window.addEventListener('scroll', () => {
+                    if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 800) {
+                        this.fetchManga();
+                    }
+                });
+            },
+
+            closeReader() { 
+                document.getElementById('reader-overlay').style.display = 'none'; 
+                document.body.style.overflow = 'auto'; 
+            },
+            
+            reOpenDetailsFromReader() { 
+                this.closeReader(); 
+                AtheerUI.showModal('details-modal'); 
+            }
+        };
+
+        // Initialize App on DOM Ready
+        document.addEventListener('DOMContentLoaded', () => AtheerApp.initialize());
+    </script>
+
+    <footer style="background: var(--surface-deep); padding: 60px 5% 40px; border-top: 2px solid var(--border-thin); margin-top: 50px;">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 50px; max-width: 1300px; margin: 0 auto;">
+            <div style="flex: 2; min-width: 300px;">
+                <h2 style="color: var(--text-pure); font-size: 2rem; margin-bottom: 20px; font-weight: 900;">Atheer<span style="color:var(--accent-primary)">.</span></h2>
+                <p style="color: var(--text-muted); font-size: 14px; line-height: 2; max-width: 400px;">
+                    منصة القراءة المتكاملة. نستخدم واجهات MangaDex لضمان أفضل تجربة قراءة وتصفح سريعة ومستقرة للمستخدم العربي.
+                </p>
+            </div>
+            <div style="flex: 1; min-width: 200px;">
+                <h4 style="margin-bottom: 25px; font-size: 13px; color: var(--text-pure); font-weight: bold;">معلومات النظام</h4>
+                <div style="background: var(--surface-card); padding: 15px; border-radius: var(--radius-md); border: 2px solid var(--border-thin); display: inline-block;">
+                    <p style="color: var(--accent-primary); font-size: 14px; font-weight: bold; margin-bottom: 5px;">Haitheem Dev</p>
+                    <p style="color: var(--text-muted); font-size: 11px;">Spck Editor Mobile Environment</p>
+                    <p style="font-size: 11px; color: var(--text-pure); margin-top: 10px; background: var(--surface-deep); padding: 4px 8px; border-radius: 4px; display: inline-block;">v6.2.1 Stable Build</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
