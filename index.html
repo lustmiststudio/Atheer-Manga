@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Atheer Manga | أثير للمانجا - النسخة الاحترافية v4.6.1</title>
+    
+    <script async crossorigin="anonymous" data-clerk-publishable-key="pk_test_bG92ZWQtdGVhbC00NS5jbGVyay5hY2NvdW50cy5kZXYk" src="https://loved-teal-45.clerk.accounts.dev/npm/@clerk/clerk-js@latest/dist/clerk.browser.js" type="text/javascript"></script>
+
+    <style>
+        /* =========================================
+           1. نظام الثوابت والجذر (CSS VARIABLES)
+           تم تعريف الألوان والقياسات الأساسية هنا
+           =========================================
+        */
+        :root {
+            --main-bg: #020202;
+            --surface-deep: #080808;
+            --surface-card: #0f0f0f;
+            --surface-hover: #161616;
+            --accent-primary: #00d4ff; 
+            --accent-secondary: #9d00ff;
+            --accent-glow: rgba(0, 212, 255, 0.3);
+            --text-pure: #ffffff;
+            --text-muted: #888888;
+            --border-thin: #1a1a1a;
+            --radius-lg: 20px;
+            --radius-md: 12px;
+            --sidebar-w: 320px;
+            --transition-main: 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        /* =========================================
+           2. التنسيقات الأساسية (GLOBAL RESET)
+           تحسين الأداء وإلغاء الهوامش الافتراضية
+           =========================================
+        */
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            outline: none;
+            -webkit-tap-highlight-color: transparent; 
+        }
+        
+        body {
+            background-color: var(--main-bg);
+            color: var(--text-pure);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        /* تخصيص شريط التمرير (Scrollbar Customization) */
+        ::-webkit-scrollbar { width: 3px; }
+        ::-webkit-scrollbar-track { background: var(--main-bg); }
+        ::-webkit-scrollbar-thumb { 
+            background: linear-gradient(to bottom, var(--accent-primary), var(--accent-secondary)); 
+            border-radius: 10px; 
+        }
+
+        /* =========================================
+           3. القائمة الجانبية (THE NAVIGATION ENGINE)
+           إدارة التنقل والفلترة وسجل القراءة
+           =========================================
+        */
+        .atheer-sidebar {
+            position: fixed;
+            top: 0;
+            right: calc(var(--sidebar-w) * -1);
+            width: var(--sidebar-w);
+            height: 100vh;
+            background: var(--surface-deep);
+            z-index: 5000;
+            transition: right var(--transition-main);
+            border-left: 1px solid var(--border-thin);
+            padding: 40px 30px;
+            box-shadow: -20px 0 50px rgba(0,0,0,0.9);
+            overflow-y: auto;
+        }
+
+        .atheer-sidebar.active { right: 0; }
+
+        .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            z-index: 4500;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .sidebar-overlay.show { display: block; opacity: 1; }
+
+        /* ميزة استئناف القراءة داخل القائمة */
+        .history-widget {
+            background: linear-gradient(135deg, #111, #0a0a0a);
+            border: 1px solid var(--border-thin);
+            border-right: 3px solid var(--accent-primary);
+            padding: 15px;
+            border-radius: var(--radius-md);
+            margin-bottom: 30px;
+            cursor: pointer;
+            display: none; 
+            transition: 0.3s;
+        }
+        .history-widget:hover { border-color: var(--accent-primary); background: var(--surface-hover); }
+        .history-info { font-size: 0.85rem; font-weight: 700; color: #fff; margin-bottom: 4px; }
+        .history-label { font-size: 0.7rem; color: var(--accent-primary); letter-spacing: 1px; }
+
+        .nav-section { margin-bottom: 45px; }
+        .nav-section h4 {
+            font-size: 0.7rem;
+            color: var(--accent-primary);
+            text-transform: uppercase;
+            margin-bottom: 25px;
+            letter-spacing: 3px;
+            opacity: 0.6;
+        }
+
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            color: var(--text-muted);
+            border-radius: var(--radius-md);
+            margin-bottom: 10px;
+            transition: 0.3s;
+            cursor: pointer;
+            border: 1px solid transparent;
+            font-weight: 500;
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            background: var(--surface-hover);
+            color: var(--accent-primary);
+            border-color: var(--accent-primary);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+            transform: translateX(-5px);
+        }
+
+        /* =========================================
+           4. الهيدر الاحترافي (MASTER HEADER)
+           يحتوي على الشعار، البحث، وأدوات المستخدم
+           =========================================
+        */
+        header {
+            height: 90px;
+            background: rgba(2, 2, 2, 0.9);
+            border-bottom: 1px solid var(--border-thin);
+            display: flex;
+            align-items: center;
+            padding: 0 6%;
+            position: sticky;
+            top: 0;
+            z-index: 3000;
+            backdrop-filter: blur(30px);
+        }
+
+        .header-wrapper {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+        }
+
+        .logo-text {
+            font-size: 1.8rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            cursor: pointer;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+        }
+
+        .search-wrapper {
+            flex-grow: 1;
+            max-width: 500px;
+            position: relative;
+        }
+
+        .search-wrapper input {
+            width: 100%;
+            background: var(--surface-card);
+            border: 1px solid var(--border-thin);
+            padding: 15px 55px 15px 25px;
+            border-radius: 50px;
+            color: #fff;
+            transition: 0.3s;
+            font-size: 0.95rem;
+        }
+
+        .search-wrapper input:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 20px var(--accent-glow);
+            background: var(--surface-hover);
+        }
+
+        .search-icon-abs {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0.5;
+        }
+
+        /* =========================================
+           5. نظام عرض المانجا (MANGA GRID SYSTEM)
+           شبكة مرنة تعرض أغلفة المانجا والتقييمات
+           =========================================
+        */
+        .main-content { padding: 40px 6%; min-height: 100vh; }
+
+        .manga-grid-layout {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 30px;
+        }
+
+        .manga-entry {
+            background: var(--surface-card);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            border: 1px solid var(--border-thin);
+            transition: var(--transition-main);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .manga-entry:hover {
+            transform: translateY(-10px);
+            border-color: var(--accent-primary);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6), 0 0 20px var(--accent-glow);
+        }
+
+        .manga-thumb {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 2/3;
+            overflow: hidden;
+            background: #111;
+        }
+
+        .manga-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: 0.6s ease-in-out;
+        }
+
+        .manga-entry:hover .manga-thumb img { transform: scale(1.1); filter: brightness(0.6); }
+
+        .badge-rating {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: rgba(0, 0, 0, 0.85);
+            color: #ffcc00;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 900;
+            backdrop-filter: blur(5px);
+            z-index: 5;
+        }
+
+        .manga-info-panel { padding: 18px; }
+
+        .manga-name-text {
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            line-height: 1.4;
+            height: 2.8em;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .manga-meta-tag {
+            font-size: 0.7rem;
+            color: var(--accent-primary);
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        /* =========================================
+           6. محرك القراءة (THE CORE READER ENGINE)
+           عرض الصفحات بشكل طولي مع أدوات التحكم
+           =========================================
+        */
+        #atheer-reader {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 7000;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .reader-header {
+            height: 75px;
+            background: rgba(10, 10, 10, 0.95);
+            border-bottom: 1px solid var(--border-thin);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 4%;
+            backdrop-filter: blur(20px);
+        }
+
+        .reader-canvas {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 0;
+            background: #000;
+            scroll-behavior: smooth;
+        }
+
+        .reader-canvas img {
+            display: block;
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            transition: opacity 0.5s;
+        }
+
+        .reader-footer {
+            height: 80px;
+            background: var(--surface-deep);
+            border-top: 1px solid var(--border-thin);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 25px;
+            padding: 0 5%;
+        }
+
+        .action-btn {
+            background: var(--surface-card);
+            border: 1px solid var(--accent-primary);
+            color: var(--accent-primary);
+            padding: 12px 25px;
+            border-radius: var(--radius-md);
+            font-weight: 800;
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .action-btn:disabled { opacity: 0.2; cursor: not-allowed; filter: grayscale(1); }
+        .action-btn:hover:not(:disabled) { 
+            background: var(--accent-primary); 
+            color: #000; 
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        /* =========================================
+           7. نظام النوافذ المنبثقة (DYNAMIC MODALS)
+           عرض قائمة الفصول ومعلومات المانجا
+           =========================================
+        */
+        .atheer-modal-container {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 6000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(15px);
+        }
+
+        .atheer-modal-content {
+            background: var(--surface-deep);
+            width: 92%;
+            max-width: 580px;
+            height: 82vh;
+            border-radius: 30px;
+            border: 1px solid var(--border-thin);
+            display: flex;
+            flex-direction: column;
+            animation: modalPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            overflow: hidden;
+        }
+
+        @keyframes modalPop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        .modal-body-scroll { flex-grow: 1; overflow-y: auto; padding: 25px; }
+
+        .chapter-item {
+            background: var(--surface-card);
+            padding: 20px;
+            border-radius: 18px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: 0.3s;
+            border: 1px solid transparent;
+        }
+
+        .chapter-item:hover {
+            border-color: var(--accent-primary);
+            background: var(--surface-hover);
+            transform: scale(1.02);
+        }
+
+        /* =========================================
+           8. شاشة التحميل (BOOTLOADER SYSTEM)
+           =========================================
+        */
+        #boot-screen {
+            position: fixed;
+            inset: 0;
+            background: var(--main-bg);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .loader-ring {
+            width: 110px;
+            height: 110px;
+            border: 4px solid #111;
+            border-top: 4px solid var(--accent-primary);
+            border-right: 4px solid var(--accent-secondary);
+            border-radius: 50%;
+            animation: fastSpin 1s infinite linear;
+        }
+
+        @keyframes fastSpin { to { transform: rotate(360deg); } }
+
+        /* =========================================
+           9. نظام الإعلانات المدمج (AD SYSTEM UI)
+           =========================================
+        */
+        #ad-top-banner {
+            width: 100%;
+            text-align: center;
+            margin: 10px 0;
+            min-height: 90px;
+            background: #0a0a0a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px dashed #333;
+        }
+
+        #ad-reader-interstitial {
+            display: none;
+            width: 100%;
+            max-width: 700px;
+            margin: 20px auto;
+            text-align: center;
+            padding: 20px;
+            background: #0f0f0f;
+            border-radius: 15px;
+        }
+
+        /* =========================================
+           10. استجابة التصميم (RESPONSIVENESS)
+           تأمين تجربة مستخدم سلسة على الهواتف
+           =========================================
+        */
+        @media (max-width: 768px) {
+            header { height: auto; padding: 25px 5%; flex-direction: column; }
+            .search-wrapper { width: 100%; order: 3; }
+            .manga-grid-layout { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; }
+            .atheer-sidebar { width: 85%; }
+            .action-btn span { display: none; }
+            .logo-text { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="boot-screen">
+        <div class="loader-ring"></div>
+        <h1 style="margin-top: 35px; letter-spacing: 8px; font-weight: 900; color: var(--accent-primary);">ATHEER</h1>
+        <p style="color: var(--text-muted); font-size: 0.7rem; margin-top: 15px; font-family: monospace;">INITIALIZING NEURAL ENGINE v4.6.1</p>
+    </div>
+
+    <div class="sidebar-overlay" id="global-dimmer" onclick="sidebarToggle(false)"></div>
+
+    <aside class="atheer-sidebar" id="main-nav">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:40px;">
+            <div class="logo-text" style="font-size:1.4rem;">أثير</div>
+            <div style="font-size:2rem; cursor:pointer;" onclick="sidebarToggle(false)">&times;</div>
+        </div>
+
+        <div class="nav-section">
+            <h4>اكمل من حيث توقفت</h4>
+            <div id="last-read-widget" class="history-widget" onclick="resumeReading()">
+                <div class="history-info" id="hist-manga-name">--</div>
+                <div class="history-label" id="hist-chapter-num">الفصل --</div>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <h4>محرك الترتيب</h4>
+            <div class="nav-btn active" onclick="updateSort('followedCount', this)">🔥 الأكثر رواجاً</div>
+            <div class="nav-btn" onclick="updateSort('rating', this)">⭐ الأعلى تقييماً</div>
+            <div class="nav-btn" onclick="updateSort('latestUploadedChapter', this)">🕒 مضاف حديثاً</div>
+        </div>
+
+        <div class="nav-section">
+            <h4>التصنيفات</h4>
+            <div id="genre-container">
+                <div class="nav-btn active" onclick="updateGenre('', this)">الكل</div>
+            </div>
+        </div>
+    </aside>
+
+    <header>
+        <div class="header-wrapper">
+            <div class="nav-actions">
+                <div id="clerk-user-button"></div>
+                <button class="action-btn" id="login-proxy-btn" style="padding: 8px 16px;">دخول</button>
+                <div style="font-size: 1.8rem; cursor: pointer; padding: 5px;" onclick="sidebarToggle(true)">☰</div>
+                <div class="logo-text" onclick="location.reload()">Atheer</div>
+            </div>
+
+            <div class="search-wrapper">
+                <span class="search-icon-abs">🔍</span>
+                <input type="text" id="manga-search-input" placeholder="ابحث عن مانجا، مانهوا، أو مؤلف...">
+            </div>
+        </div>
+    </header>
+
+    <div id="ad-top-banner">
+        <p style="color: #444; font-size: 0.8rem;">مساحة إعلانية (Banner Ad)</p>
+    </div>
+
+    <main class="main-content">
+        <div class="manga-grid-layout" id="manga-render-grid"></div>
+        <div id="infinite-scroll-trigger" style="display:none; padding: 60px; text-align:center;">
+            <div class="loader-ring" style="width:40px; height:40px; display:inline-block; border-width:2px;"></div>
+        </div>
+    </main>
+
+    <div class="atheer-modal-container" id="chapter-modal">
+        <div class="atheer-modal-content">
+            <div class="reader-header" style="border-radius: 30px 30px 0 0;">
+                <h3 id="modal-manga-title" style="color:var(--accent-primary); font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%;">قائمة الفصول</h3>
+                <button class="action-btn" onclick="modalClose()" style="padding: 5px 15px;">&times;</button>
+            </div>
+            <div class="modal-body-scroll" id="chapter-list-target"></div>
+        </div>
+    </div>
+
+    <section id="atheer-reader">
+        <div class="reader-header">
+            <button class="action-btn" onclick="readerExit()">🔙 <span>خروج</span></button>
+            <div style="text-align:center">
+                <h4 id="active-manga-name" style="font-size: 0.8rem; opacity: 0.7;">Loading...</h4>
+                <p id="active-chapter-label" style="color: var(--accent-primary); font-weight: 900;">فصل --</p>
+            </div>
+            <button class="action-btn" onclick="readerOpenChapters()">📑 <span>الفصول</span></button>
+        </div>
+
+        <div class="reader-canvas" id="reader-pages-flow">
+            </div>
+
+        <div id="ad-reader-interstitial">
+            <p style="color: var(--accent-primary); font-size: 0.7rem; margin-bottom: 10px;">إعلان - يدعم استمرار الموقع</p>
+            <div id="ad-slot-2">
+                </div>
+        </div>
+
+        <div class="reader-footer">
+            <button class="action-btn" id="prev-ch-btn" onclick="chChange('prev')">⏮️ <span>السابق</span></button>
+            <button class="action-btn" id="next-ch-btn" onclick="chChange('next')"><span>التالي</span> ⏭️</button>
+        </div>
+    </section>
+
+    <script>
+        /* =========================================
+           11. منطق التحكم البرمجي (CORE ENGINE)
+           تحليل الحالة، طلب البيانات، وإدارة الواجهة
+           =========================================
+        */
+
+        const APP_STATE = {
+            API_BASE: 'https://api.mangadex.org',
+            LIMIT: 24,
+            OFFSET: 0,
+            SORT_MODE: 'followedCount',
+            GENRE_ID: '',
+            QUERY: '',
+            BUSY: false,
+            END_OF_DATA: false,
+            SELECTED_ID: '',
+            SELECTED_TITLE: '',
+            CHAPTER_MAP: [],
+            CURRENT_IDX: -1,
+            AD_SHOWN_LAST: Date.now()
+        };
+
+        /**
+         * وظائف إدارة الإعلانات (Ad Manager)
+         * تتحكم في متى وكيف تظهر الإعلانات لزيادة الأرباح
+         */
+        const AdManager = {
+            init: function() {
+                console.log("Ad Manager Active v1.0");
+                // هنا يمكن إضافة أكواد تهيئة الشركات الإعلانية
+            },
+            showInterstitial: function() {
+                const el = document.getElementById('ad-reader-interstitial');
+                if(el) el.style.display = 'block';
+            },
+            hideInterstitial: function() {
+                const el = document.getElementById('ad-reader-interstitial');
+                if(el) el.style.display = 'none';
+            },
+            trackImpression: function(zone) {
+                console.log("Impression logged for: " + zone);
+            }
+        };
+
+        /**
+         * تهيئة النظام عند تحميل النافذة
+         */
+        window.addEventListener('load', async () => {
+            checkReadingHistory();
+            AdManager.init();
+            
+            try {
+                // تحميل نظام العضوية
+                await Clerk.load();
+                if (Clerk.user) {
+                    document.getElementById('login-proxy-btn').style.display = 'none';
+                    Clerk.mountUserButton(document.getElementById('clerk-user-button'));
+                } else {
+                    document.getElementById('login-proxy-btn').onclick = () => Clerk.openSignIn();
+                }
+                engineInit();
+            } catch (err) { 
+                console.warn("Clerk failed to load, starting in guest mode.");
+                engineInit(); 
+            }
+        });
+
+        async function engineInit() {
+            await loadGenres();
+            await fetchContent(true);
+            bindEvents();
+            
+            // شاشة البوت لوادر
+            setTimeout(() => {
+                const bs = document.getElementById('boot-screen');
+                bs.style.opacity = '0';
+                bs.style.transition = '0.8s';
+                setTimeout(() => bs.style.display = 'none', 800);
+            }, 1800);
+        }
+
+        /* -----------------------------------------
+           إدارة سجل القراءة (History Management)
+           -----------------------------------------
+        */
+
+        function saveProgress(mangaId, mangaTitle, chapterIdx, chapterLabel) {
+            const data = { mangaId, mangaTitle, chapterIdx, chapterLabel };
+            localStorage.setItem('atheer_last_read', JSON.stringify(data));
+            checkReadingHistory();
+        }
+
+        function checkReadingHistory() {
+            const saved = localStorage.getItem('atheer_last_read');
+            const widget = document.getElementById('last-read-widget');
+            if (saved) {
+                const data = JSON.parse(saved);
+                document.getElementById('hist-manga-name').innerText = data.mangaTitle;
+                document.getElementById('hist-chapter-num').innerText = `استكمال الفصل ${data.chapterLabel}`;
+                widget.style.display = 'block';
+            }
+        }
+
+        async function resumeReading() {
+            const saved = JSON.parse(localStorage.getItem('atheer_last_read'));
+            sidebarToggle(false);
+            // فتح قائمة فصول المانجا المحفوظة بصمت لضمان جلب الـ ChapterMap
+            await openChapters(saved.mangaId, saved.mangaTitle, true);
+            // تشغيل الفصل المحفوظ من الفهرس المأخوذ من السجل
+            readerStart(saved.chapterIdx);
+        }
+
+        /* -----------------------------------------
+           محرك جلب البيانات من MangaDex
+           -----------------------------------------
+        */
+
+        async function fetchContent(reset = false) {
+            if (APP_STATE.BUSY) return;
+            if (reset) {
+                APP_STATE.OFFSET = 0;
+                APP_STATE.END_OF_DATA = false;
+                document.getElementById('manga-render-grid').innerHTML = '';
+            }
+
+            APP_STATE.BUSY = true;
+            document.getElementById('infinite-scroll-trigger').style.display = 'block';
+
+            let endpoint = `${APP_STATE.API_BASE}/manga?limit=${APP_STATE.LIMIT}&offset=${APP_STATE.OFFSET}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`;
+            
+            // إضافة الفلاتر
+            if (APP_STATE.QUERY) endpoint += `&title=${encodeURIComponent(APP_STATE.QUERY)}`;
+            if (APP_STATE.GENRE_ID) endpoint += `&includedTags[]=${APP_STATE.GENRE_ID}`;
+            
+            // فرز النتائج
+            endpoint += `&order[${APP_STATE.SORT_MODE}]=desc`;
+
+            try {
+                const response = await fetch(endpoint);
+                const result = await response.json();
+                const items = result.data;
+                
+                if (items.length < APP_STATE.LIMIT) {
+                    APP_STATE.END_OF_DATA = true;
+                }
+                
+                items.forEach(m => renderMangaCard(m));
+                APP_STATE.OFFSET += APP_STATE.LIMIT;
+                
+                AdManager.trackImpression("MainGrid");
+            } catch (error) {
+                console.error("Critical Fetch Error:", error);
+            } finally {
+                APP_STATE.BUSY = false;
+                document.getElementById('infinite-scroll-trigger').style.display = 'none';
+            }
+        }
+
+        function renderMangaCard(m) {
+            const container = document.getElementById('manga-render-grid');
+            const attr = m.attributes;
+            const title = attr.title.en || attr.title.ja || Object.values(attr.title)[0] || "No Title";
+            
+            const coverRel = m.relationships.find(r => r.type === 'cover_art');
+            const file = coverRel ? coverRel.attributes.fileName : '';
+            const finalImg = file ? `https://uploads.mangadex.org/covers/${m.id}/${file}.256.jpg` : 'https://via.placeholder.com/256x384/111/444';
+            
+            // محاكاة تقييم عشوائي لاحترافية العرض
+            const rating = (Math.random() * (9.8 - 7.5) + 7.5).toFixed(1);
+
+            const card = document.createElement('div');
+            card.className = 'manga-entry';
+            card.innerHTML = `
+                <div class="manga-thumb">
+                    <div class="badge-rating">⭐ ${rating}</div>
+                    <img src="${finalImg}" alt="${title}" loading="lazy">
+                </div>
+                <div class="manga-info-panel">
+                    <div class="manga-name-text">${title}</div>
+                    <div class="manga-meta-tag">MangaDex Source</div>
+                </div>
+            `;
+            card.onclick = () => openChapters(m.id, title);
+            container.appendChild(card);
+        }
+
+        async function openChapters(id, title, isSilent = false) {
+            APP_STATE.SELECTED_ID = id;
+            APP_STATE.SELECTED_TITLE = title;
+            
+            const modal = document.getElementById('chapter-modal');
+            const list = document.getElementById('chapter-list-target');
+            document.getElementById('modal-manga-title').innerText = title;
+            
+            if (!isSilent) {
+                modal.style.display = 'flex';
+                list.innerHTML = '<div style="padding:50px; text-align:center; opacity:0.5;">جاري الاستجابة...</div>';
+            }
+
+            try {
+                const res = await fetch(`${APP_STATE.API_BASE}/manga/${id}/feed?translatedLanguage[]=ar&translatedLanguage[]=en&order[chapter]=desc&limit=100`);
+                const data = await res.json();
+                APP_STATE.CHAPTER_MAP = data.data;
+
+                if (APP_STATE.CHAPTER_MAP.length === 0 && !isSilent) {
+                    list.innerHTML = '<p style="text-align:center; padding:30px;">لا يوجد فصول عربية/إنجليزية حالياً.</p>';
+                    return;
+                }
+
+                if (!isSilent) {
+                    list.innerHTML = APP_STATE.CHAPTER_MAP.map((ch, idx) => `
+                        <div class="chapter-item" onclick="readerStart(${idx})">
+                            <span>الفصل ${ch.attributes.chapter || '0'}</span>
+                            <span style="color:var(--accent-primary); font-size:0.75rem">${ch.attributes.translatedLanguage.toUpperCase()}</span>
+                        </div>
+                    `).join('');
+                }
+            } catch (e) {
+                if (!isSilent) list.innerHTML = '<p style="color:red; text-align:center;">فشل الاتصال بالخادم.</p>';
+            }
+        }
+
+        /* -----------------------------------------
+           محرك القراءة المتقدم (Reader Engine)
+           -----------------------------------------
+        */
+
+        async function readerStart(idx) {
+            APP_STATE.CURRENT_IDX = idx;
+            const chapter = APP_STATE.CHAPTER_MAP[idx];
+            const reader = document.getElementById('atheer-reader');
+            const canvas = document.getElementById('reader-pages-flow');
+            
+            // حفظ التقدم عند بدء القراءة
+            saveProgress(APP_STATE.SELECTED_ID, APP_STATE.SELECTED_TITLE, idx, chapter.attributes.chapter);
+
+            // إغلاق أي نوافذ مفتوحة
+            modalClose();
+            
+            // تهيئة واجهة القارئ
+            reader.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            document.getElementById('active-manga-name').innerText = APP_STATE.SELECTED_TITLE;
+            document.getElementById('active-chapter-label').innerText = `فصل ${chapter.attributes.chapter}`;
+            
+            canvas.innerHTML = '<div style="padding:150px 0; text-align:center; letter-spacing:2px; font-weight:800;">BUFFERING PAGES...</div>';
+            
+            // تحديث أزرار التنقل
+            readerNavUpdate();
+
+            try {
+                const res = await fetch(`${APP_STATE.API_BASE}/at-home/server/${chapter.id}`);
+                const data = await res.json();
+                const hash = data.chapter.hash;
+                const pages = data.chapter.data;
+
+                // حقن الصور مع تقنية Lazy Loading
+                canvas.innerHTML = pages.map(p => `
+                    <img src="${data.baseUrl}/data/${hash}/${p}" loading="lazy" 
+                         onerror="this.src='https://via.placeholder.com/800x1200?text=Reloading...'"
+                         onload="this.style.opacity=1" style="opacity:0;">
+                `).join('');
+                
+                // إضافة الإعلان في نهاية القائمة
+                const adZone = document.getElementById('ad-reader-interstitial');
+                canvas.appendChild(adZone);
+                AdManager.showInterstitial();
+                
+                canvas.scrollTop = 0;
+            } catch (err) {
+                canvas.innerHTML = '<p style="color:red; text-align:center; padding:50px;">خطأ في تحميل الصور.</p>';
+            }
+        }
+
+        function chChange(dir) {
+            if (dir === 'next' && APP_STATE.CURRENT_IDX > 0) {
+                readerStart(APP_STATE.CURRENT_IDX - 1);
+            } else if (dir === 'prev' && APP_STATE.CURRENT_IDX < APP_STATE.CHAPTER_MAP.length - 1) {
+                readerStart(APP_STATE.CURRENT_IDX + 1);
+            }
+        }
+
+        function readerNavUpdate() {
+            document.getElementById('next-ch-btn').disabled = (APP_STATE.CURRENT_IDX <= 0);
+            document.getElementById('prev-ch-btn').disabled = (APP_STATE.CURRENT_IDX >= APP_STATE.CHAPTER_MAP.length - 1);
+        }
+
+        /* -----------------------------------------
+           وظائف واجهة المستخدم والمساعدات (UI Helpers)
+           -----------------------------------------
+        */
+
+        function sidebarToggle(open) {
+            document.getElementById('main-nav').classList.toggle('active', open);
+            const dimmer = document.getElementById('global-dimmer');
+            dimmer.style.display = open ? 'block' : 'none';
+            setTimeout(() => dimmer.style.opacity = open ? '1' : '0', 10);
+        }
+
+        function updateSort(mode, el) {
+            APP_STATE.SORT_MODE = mode;
+            updateActiveState(el);
+            fetchContent(true);
+            sidebarToggle(false);
+        }
+
+        function updateGenre(gid, el) {
+            APP_STATE.GENRE_ID = gid;
+            updateActiveState(el);
+            fetchContent(true);
+            sidebarToggle(false);
+        }
+
+        function updateActiveState(el) {
+            if(!el) return;
+            el.parentElement.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        function modalClose() { 
+            document.getElementById('chapter-modal').style.display = 'none'; 
+        }
+        
+        function readerExit() { 
+            document.getElementById('atheer-reader').style.display = 'none'; 
+            document.body.style.overflow = 'auto';
+            document.getElementById('reader-pages-flow').innerHTML = ''; 
+            AdManager.hideInterstitial();
+        }
+
+        function readerOpenChapters() {
+            const currentMangaId = APP_STATE.SELECTED_ID;
+            const currentMangaTitle = APP_STATE.SELECTED_TITLE;
+            readerExit();
+            openChapters(currentMangaId, currentMangaTitle);
+        }
+
+        async function loadGenres() {
+            try {
+                const res = await fetch(`${APP_STATE.API_BASE}/manga/tag`);
+                const json = await res.json();
+                const container = document.getElementById('genre-container');
+                
+                // جلب أول 25 تصنيف فقط للحفاظ على نظافة القائمة
+                json.data.slice(0, 25).forEach(tag => {
+                    const btn = document.createElement('div');
+                    btn.className = 'nav-btn';
+                    btn.innerText = tag.attributes.name.en;
+                    btn.onclick = () => updateGenre(tag.id, btn);
+                    container.appendChild(btn);
+                });
+            } catch (e) { 
+                console.error("Genre Load Error: Tags could not be retrieved."); 
+            }
+        }
+
+        /**
+         * ربط أحداث الإدخال والتمرير (Event Binding)
+         */
+        function bindEvents() {
+            let debounceTimer;
+            
+            // محرك البحث مع ميزة Debounce لتقليل طلبات API
+            const searchInput = document.getElementById('manga-search-input');
+            if(searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => {
+                        APP_STATE.QUERY = e.target.value.trim();
+                        fetchContent(true);
+                    }, 800);
+                });
+            }
+
+            // نظام Infinite Scroll (التمرير اللانهائي)
+            window.addEventListener('scroll', () => {
+                const scrollPos = window.innerHeight + window.scrollY;
+                const pageBottom = document.body.offsetHeight - 1200;
+                
+                if (scrollPos >= pageBottom) {
+                    if (!APP_STATE.BUSY && !APP_STATE.END_OF_DATA) {
+                        fetchContent();
+                    }
+                }
+            });
+
+            console.log("Events successfully bound to Atheer Engine.");
+        }
+    </script>
+    
+    </body>
+</html>
