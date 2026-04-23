@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#020202">
+    <title>Atheer Manga | أثير للمانجا - النظام المتكامل v5.2.0</title>
+    
+    <script async crossorigin="anonymous" data-clerk-publishable-key="pk_test_bG92ZWQtdGVhbC00NS5jbGVyay5hY2NvdW50cy5kZXYk" src="https://loved-teal-45.clerk.accounts.dev/npm/@clerk/clerk-js@latest/dist/clerk.browser.js" type="text/javascript"></script>
+
+    <style>
+        /* ==========================================================
+           1. CORE ARCHITECTURE & DESIGN SYSTEM (CSS VARIABLES)
+           ==========================================================
+        */
+        :root {
+            --main-bg: #020202;
+            --surface-deep: #080808;
+            --surface-card: #0f0f0f;
+            --surface-hover: #161616;
+            --accent-primary: #00d4ff; 
+            --accent-secondary: #9d00ff;
+            --accent-glow: rgba(0, 212, 255, 0.3);
+            --text-pure: #ffffff;
+            --text-muted: #888888;
+            --border-thin: #1a1a1a;
+            --radius-lg: 20px;
+            --radius-md: 12px;
+            --sidebar-w: 320px;
+            --transition-main: 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+            --safe-top: env(safe-area-inset-top);
+            --shadow-glow: 0 0 20px rgba(0, 212, 255, 0.1);
+        }
+
+        /* GLOBAL RESET */
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            outline: none;
+            -webkit-tap-highlight-color: transparent; 
+        }
+        
+        body {
+            background-color: var(--main-bg);
+            color: var(--text-pure);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+            user-select: none;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* SCROLLBAR CUSTOMIZATION */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: var(--main-bg); }
+        ::-webkit-scrollbar-thumb { 
+            background: linear-gradient(to bottom, var(--accent-primary), var(--accent-secondary)); 
+            border-radius: 10px; 
+        }
+
+        /* ==========================================================
+           2. ANIMATIONS & TRANSITIONS
+           ==========================================================
+        */
+        @keyframes skeleton-loading { 
+            0% { background-position: 200% 0; } 
+            100% { background-position: -200% 0; } 
+        }
+
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .fade-in { animation: fadeInScale 0.5s forwards; }
+
+        /* ==========================================================
+           3. UI COMPONENTS (SIDEBAR, BUTTONS, CARDS)
+           ==========================================================
+        */
+        .atheer-sidebar {
+            position: fixed;
+            top: 0;
+            right: calc(var(--sidebar-w) * -1);
+            width: var(--sidebar-w);
+            height: 100vh;
+            background: var(--surface-deep);
+            z-index: 5000;
+            transition: right var(--transition-main);
+            border-left: 1px solid var(--border-thin);
+            padding: 40px 25px;
+            box-shadow: -20px 0 60px rgba(0,0,0,0.9);
+            overflow-y: auto;
+        }
+        .atheer-sidebar.active { right: 0; }
+
+        .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            z-index: 4500;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        .sidebar-overlay.show { display: block; opacity: 1; }
+
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            color: var(--text-muted);
+            border-radius: var(--radius-md);
+            margin-bottom: 10px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            border: 1px solid transparent;
+            font-size: 0.95rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .nav-btn:hover {
+            background: var(--surface-hover);
+            color: var(--accent-primary);
+            border-color: var(--accent-primary);
+            transform: translateX(-5px);
+        }
+        .nav-btn.active {
+            background: var(--surface-card);
+            color: var(--accent-primary);
+            border-color: var(--accent-primary);
+            box-shadow: var(--shadow-glow);
+        }
+
+        /* MANGA CARDS SYSTEM */
+        .manga-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .manga-card {
+            background: var(--surface-card);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            border: 1px solid var(--border-thin);
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+        }
+        .manga-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--accent-primary);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.8);
+        }
+        .manga-card .cover-wrapper {
+            position: relative;
+            aspect-ratio: 2/3;
+            overflow: hidden;
+        }
+        .manga-card .cover {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: 0.6s;
+        }
+        .manga-card:hover .cover { transform: scale(1.1); filter: brightness(0.7); }
+
+        /* ==========================================================
+           4. ADVERTISING SYSTEM UI
+           ==========================================================
+        */
+        .ad-container-main {
+            width: 100%;
+            padding: 15px;
+            border-radius: var(--radius-md);
+            background: rgba(255,255,255,0.02);
+            border: 1px dashed #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 25px 0;
+            min-height: 120px;
+            justify-content: center;
+        }
+        .ad-label {
+            font-size: 10px;
+            color: #444;
+            margin-bottom: 10px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        /* ==========================================================
+           5. HEADER & SEARCH BAR
+           ==========================================================
+        */
+        header {
+            height: 90px;
+            background: rgba(2, 2, 2, 0.85);
+            border-bottom: 1px solid var(--border-thin);
+            display: flex;
+            align-items: center;
+            padding: 0 5%;
+            position: sticky;
+            top: 0;
+            z-index: 3500;
+            backdrop-filter: blur(20px);
+        }
+
+        .header-content {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 25px;
+        }
+
+        .logo-box {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .search-wrapper {
+            flex-grow: 1;
+            max-width: 550px;
+            position: relative;
+        }
+        .search-wrapper input {
+            width: 100%;
+            background: var(--surface-card);
+            border: 1px solid var(--border-thin);
+            padding: 15px 25px;
+            border-radius: 50px;
+            color: #fff;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+        .search-wrapper input:focus {
+            border-color: var(--accent-primary);
+            box-shadow: var(--shadow-glow);
+            background: var(--surface-hover);
+        }
+
+        /* ==========================================================
+           6. READER & MODALS
+           ==========================================================
+        */
+        #reader-overlay {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 8000;
+            display: none;
+            flex-direction: column;
+        }
+
+        .reader-header {
+            height: 75px;
+            background: rgba(10, 10, 10, 0.98);
+            border-bottom: 1px solid #1a1a1a;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 5%;
+        }
+
+        .reader-scroll-area {
+            flex-grow: 1;
+            overflow-y: auto;
+            background: #050505;
+        }
+        .reader-scroll-area img {
+            display: block;
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            border-bottom: 2px solid #000;
+        }
+
+        /* LOADING SPINNER */
+        .loader-ring {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #111;
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s infinite linear;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* BOOT SCREEN */
+        #boot-screen {
+            position: fixed;
+            inset: 0;
+            background: var(--main-bg);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: 0.6s;
+        }
+
+        /* RESPONSIVE MEDIA */
+        @media (max-width: 768px) {
+            header { height: auto; padding: 15px 5%; }
+            .header-content { flex-direction: column; gap: 15px; }
+            .search-wrapper { max-width: 100%; width: 100%; }
+            .atheer-sidebar { width: 85%; }
+            .manga-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="boot-screen">
+        <div class="loader-ring"></div>
+        <h2 style="margin-top: 25px; letter-spacing: 8px; color: var(--accent-primary); font-weight: 900;">ATHEER ENGINE</h2>
+        <p id="boot-log" style="font-size: 11px; color: var(--text-muted); margin-top: 15px;">BOOTING KERNEL v5.2.0...</p>
+    </div>
+
+    <div class="sidebar-overlay" id="sidebar-dimmer" onclick="toggleSidebar(false)"></div>
+    <aside class="atheer-sidebar" id="sidebar">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
+            <span class="logo-text" style="font-size: 1.4rem; font-weight: 900; color: var(--accent-primary);">القائمة</span>
+            <span style="font-size: 2.2rem; cursor: pointer; line-height: 1;" onclick="toggleSidebar(false)">&times;</span>
+        </div>
+
+        <div id="history-section" style="margin-bottom: 40px; display: none;">
+            <p style="font-size: 10px; color: var(--accent-secondary); margin-bottom: 12px; letter-spacing: 2px; text-transform: uppercase;">آخر ما تمت قراءته</p>
+            <div id="resume-btn" class="nav-btn" style="background: var(--surface-card); height: auto; padding: 15px;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <span id="hist-title" style="color: #fff; font-weight: 700; font-size: 13px;">--</span>
+                    <span id="hist-ch" style="font-size: 11px; opacity: 0.6;">الفصل --</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-section" style="margin-bottom: 40px;">
+            <p style="font-size: 10px; color: var(--text-muted); margin-bottom: 15px; letter-spacing: 2px;">الرئيسية</p>
+            <div class="nav-btn active" id="home-trigger" onclick="AtheerApp.resetToHome()">🏠 الصفحة الرئيسية</div>
+            <div class="nav-btn" onclick="AtheerApp.getLucky()">🎲 مانجا عشوائية</div>
+            <div class="nav-btn" onclick="Clerk.openUserProfile()">⚙️ إعدادات الحساب</div>
+        </div>
+
+        <div class="nav-section">
+            <p style="font-size: 10px; color: var(--text-muted); margin-bottom: 15px; letter-spacing: 2px;">التصنيفات (Genre)</p>
+            <div id="category-box" style="display: flex; flex-direction: column; gap: 5px;">
+                </div>
+        </div>
+    </aside>
+
+    <header>
+        <div class="header-content">
+            <div class="logo-box">
+                <div style="cursor: pointer; font-size: 1.8rem; color: var(--accent-primary);" onclick="toggleSidebar(true)">☰</div>
+                <h1 class="logo-text" style="cursor:pointer; font-weight: 900; letter-spacing: 2px;" onclick="AtheerApp.resetToHome()">Atheer</h1>
+            </div>
+
+            <div class="search-wrapper">
+                <input type="text" id="main-search" placeholder="ابحث عن مانجا، مانهوا، أو مؤلف...">
+            </div>
+
+            <div id="user-portal">
+                <div id="clerk-user-mount"></div>
+                <button id="auth-trigger" class="nav-btn" style="margin: 0; background: var(--accent-primary); color: #000; font-weight: 900; display: none; padding: 10px 25px; border-radius: 50px;">دخول</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-container" style="padding: 30px 5%;">
+        <div class="ad-container-main" id="ad-top">
+            <span class="ad-label">Sponsored Content</span>
+            <div id="container-e317e52d52b645e081cf37d4bb3ef5b5"></div>
+        </div>
+
+        <div id="section-title-box" style="margin-bottom: 25px;">
+            <h2 id="current-view-title" style="font-size: 1.5rem; border-right: 4px solid var(--accent-primary); padding-right: 15px;">أحدث الإضافات</h2>
+        </div>
+
+        <div class="manga-grid" id="main-grid">
+            </div>
+
+        <div id="global-loader" style="text-align: center; padding: 60px; display: none;">
+            <div class="loader-ring" style="width: 35px; height: 35px; display: inline-block;"></div>
+            <p style="margin-top: 15px; font-size: 12px; opacity: 0.5;">جاري تحميل المزيد...</p>
+        </div>
+
+        <div class="ad-container-main" id="ad-bottom" style="margin-top: 60px;">
+            <span class="ad-label">Partner Links</span>
+            <div id="container-dynamic-ads"></div>
+        </div>
+    </main>
+
+    <div id="details-modal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 7000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(15px);">
+        <div style="background: var(--surface-deep); width: 95%; max-width: 600px; height: 85vh; border-radius: 25px; border: 1px solid var(--border-thin); display: flex; flex-direction: column; overflow: hidden;" class="fade-in">
+            <div style="padding: 25px; border-bottom: 1px solid var(--border-thin); display: flex; justify-content: space-between; align-items: center;">
+                <h3 id="modal-manga-name" style="font-size: 1.2rem; color: var(--accent-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80%;">--</h3>
+                <span style="font-size: 2.5rem; cursor: pointer; color: var(--text-muted);" onclick="closeModal()">&times;</span>
+            </div>
+
+            <div style="padding: 10px; background: #000; border-bottom: 1px solid #111;">
+                <script src="https://pl29231046.profitablecpmratenetwork.com/e4/64/79/e4647992539752aae8d21fa3ca714546.js"></script>
+            </div>
+
+            <div id="chapters-container" style="flex-grow: 1; overflow-y: auto; padding: 25px;">
+                </div>
+        </div>
+    </div>
+
+    <div id="reader-overlay">
+        <div class="reader-header">
+            <button class="nav-btn" onclick="AtheerApp.closeReader()" style="margin: 0; background: transparent; border: none;">✕ إغلاق</button>
+            <div style="text-align: center;">
+                <p id="reader-manga-title" style="font-size: 10px; color: var(--text-muted); margin-bottom: 2px;">--</p>
+                <p id="reader-current-ch" style="font-weight: 900; color: var(--accent-primary);">الفصل --</p>
+            </div>
+            <button class="nav-btn" onclick="AtheerApp.reOpenDetailsFromReader()" style="margin: 0;">📑 الفصول</button>
+        </div>
+
+        <div class="reader-scroll-area" id="reader-pages-box">
+            </div>
+
+        <div style="background: #080808; padding: 50px 0; text-align: center; border-top: 1px solid #1a1a1a;">
+            <p style="color: #444; font-size: 11px; margin-bottom: 20px;">شكراً لقراءتك على منصة أثير</p>
+            <div id="reader-footer-ad"></div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * ATHEER MANGA FRAMEWORK v5.2.0
+         * Lead Developer: Haitheem
+         * Architecture: High-Performance API Integration
+         */
+
+        const ATHEER_ENV = {
+            API_BASE: 'https://api.mangadex.org',
+            CDN_BASE: 'https://uploads.mangadex.org',
+            PAGE_LIMIT: 24,
+            GLOBAL_OFFSET: 0,
+            ACTIVE_MANGA_ID: null,
+            ACTIVE_MANGA_TITLE: '',
+            ACTIVE_CH_LIST: [],
+            CURRENT_GENRE: null,
+            SEARCH_TERM: '',
+            IS_FETCHING: false
+        };
+
+        const AtheerApp = {
+            
+            // 1. App Bootstrapping
+            async initialize() {
+                try {
+                    await Clerk.load();
+                    this.handleAuthentication();
+                    this.loadSystemData();
+                    this.attachEventListeners();
+                    this.checkUserHistory();
+                } catch (err) {
+                    console.error("Critical System Boot Failure:", err);
+                    this.loadSystemData(); // Boot without auth if needed
+                }
+            },
+
+            handleAuthentication() {
+                const btn = document.getElementById('auth-trigger');
+                if (Clerk.user) {
+                    btn.style.display = 'none';
+                    Clerk.mountUserButton(document.getElementById('clerk-user-mount'));
+                } else {
+                    btn.style.display = 'block';
+                    btn.onclick = () => Clerk.openSignIn();
+                }
+            },
+
+            async loadSystemData() {
+                this.updateBootLog("Loading Categories...");
+                await this.fetchGenres();
+                
+                this.updateBootLog("Fetching Latest Releases...");
+                await this.fetchMangaData();
+
+                // Finish Booting
+                setTimeout(() => {
+                    const bs = document.getElementById('boot-screen');
+                    bs.style.opacity = '0';
+                    setTimeout(() => bs.style.display = 'none', 600);
+                }, 1500);
+            },
+
+            updateBootLog(msg) {
+                document.getElementById('boot-log').innerText = msg;
+            },
+
+            // 2. Data Fetching Engine (CORE)
+            async fetchMangaData(reset = false) {
+                if (ATHEER_ENV.IS_FETCHING) return;
+                ATHEER_ENV.IS_FETCHING = true;
+
+                if (reset) {
+                    ATHEER_ENV.GLOBAL_OFFSET = 0;
+                    document.getElementById('main-grid').innerHTML = '';
+                }
+
+                document.getElementById('global-loader').style.display = 'block';
+
+                let apiURL = `${ATHEER_ENV.API_BASE}/manga?limit=${ATHEER_ENV.PAGE_LIMIT}&offset=${ATHEER_ENV.GLOBAL_OFFSET}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`;
+
+                // Add Filters
+                if (ATHEER_ENV.SEARCH_TERM) {
+                    apiURL += `&title=${encodeURIComponent(ATHEER_ENV.SEARCH_TERM)}`;
+                } else if (ATHEER_ENV.CURRENT_GENRE) {
+                    apiURL += `&includedTags[]=${ATHEER_ENV.CURRENT_GENRE}`;
+                } else {
+                    apiURL += `&order[followedCount]=desc`;
+                }
+
+                try {
+                    const response = await fetch(apiURL);
+                    const result = await response.json();
+                    this.renderMangaCards(result.data);
+                    ATHEER_ENV.GLOBAL_OFFSET += ATHEER_ENV.PAGE_LIMIT;
+                } catch (e) {
+                    this.showNotification("خطأ في الاتصال بالخادم");
+                } finally {
+                    ATHEER_ENV.IS_FETCHING = false;
+                    document.getElementById('global-loader').style.display = 'none';
+                }
+            },
+
+            renderMangaCards(mangaList) {
+                const grid = document.getElementById('main-grid');
+                
+                mangaList.forEach(manga => {
+                    const mID = manga.id;
+                    const mTitle = manga.attributes.title.en || Object.values(manga.attributes.title)[0] || 'Unknown';
+                    const coverRel = manga.relationships.find(r => r.type === 'cover_art');
+                    const coverFile = coverRel ? coverRel.attributes.fileName : '';
+                    const finalCover = coverFile ? `${ATHEER_ENV.CDN_BASE}/covers/${mID}/${coverFile}.256.jpg` : 'https://via.placeholder.com/256x380?text=No+Cover';
+
+                    const card = document.createElement('div');
+                    card.className = 'manga-card fade-in';
+                    card.innerHTML = `
+                        <div class="cover-wrapper">
+                            <img src="${finalCover}" class="cover" alt="${mTitle}" loading="lazy">
+                        </div>
+                        <div style="padding: 12px;">
+                            <p style="font-size: 13px; font-weight: 700; height: 38px; overflow: hidden; line-height: 1.4;">${mTitle}</p>
+                            <div style="display: flex; align-items: center; gap: 5px; margin-top: 8px;">
+                                <span style="font-size: 9px; color: var(--accent-primary); border: 1px solid var(--accent-primary); padding: 1px 5px; border-radius: 3px;">MANGA</span>
+                                <span style="font-size: 9px; opacity: 0.4;">MangaDex API</span>
+                            </div>
+                        </div>
+                    `;
+                    card.onclick = () => this.openMangaDetails(mID, mTitle);
+                    grid.appendChild(card);
+                });
+            },
+
+            // 3. Category System (FIXED)
+            async fetchGenres() {
+                try {
+                    const res = await fetch(`${ATHEER_ENV.API_BASE}/manga/tag`);
+                    const json = await res.json();
+                    const box = document.getElementById('category-box');
+                    
+                    // Filter for specific genres or take the top ones
+                    json.data.slice(0, 30).forEach(tag => {
+                        const tagName = tag.attributes.name.en;
+                        const tagID = tag.id;
+
+                        const btn = document.createElement('div');
+                        btn.className = 'nav-btn';
+                        btn.innerHTML = `<span># ${tagName}</span>`;
+                        btn.onclick = () => this.applyGenreFilter(tagID, tagName);
+                        box.appendChild(btn);
+                    });
+                } catch (err) { console.error("Genre load error"); }
+            },
+
+            applyGenreFilter(id, name) {
+                ATHEER_ENV.CURRENT_GENRE = id;
+                ATHEER_ENV.SEARCH_TERM = '';
+                document.getElementById('current-view-title').innerText = `تصنيف: ${name}`;
+                toggleSidebar(false);
+                this.fetchMangaData(true);
+            },
+
+            // 4. Random Discovery
+            async getLucky() {
+                toggleSidebar(false);
+                this.showGlobalLoader(true);
+                try {
+                    const res = await fetch(`${ATHEER_ENV.API_BASE}/manga/random?includes[]=cover_art`);
+                    const json = await res.json();
+                    const m = json.data;
+                    const title = m.attributes.title.en || Object.values(m.attributes.title)[0];
+                    this.openMangaDetails(m.id, title);
+                } catch (e) {
+                    this.showNotification("حاول مرة أخرى...");
+                } finally {
+                    this.showGlobalLoader(false);
+                }
+            },
+
+            // 5. Chapter & Reader Logic
+            async openMangaDetails(id, title) {
+                ATHEER_ENV.ACTIVE_MANGA_ID = id;
+                ATHEER_ENV.ACTIVE_MANGA_TITLE = title;
+                
+                const modal = document.getElementById('details-modal');
+                const list = document.getElementById('chapters-container');
+                document.getElementById('modal-manga-name').innerText = title;
+                
+                modal.style.display = 'flex';
+                list.innerHTML = '<div style="text-align:center; padding:40px;"><div class="loader-ring" style="display:inline-block; width:30px; height:30px;"></div></div>';
+
+                try {
+                    const res = await fetch(`${ATHEER_ENV.API_BASE}/manga/${id}/feed?translatedLanguage[]=ar&translatedLanguage[]=en&order[chapter]=desc&limit=500`);
+                    const json = await res.json();
+                    ATHEER_ENV.ACTIVE_CH_LIST = json.data;
+
+                    if (ATHEER_ENV.ACTIVE_CH_LIST.length === 0) {
+                        list.innerHTML = '<p style="text-align:center; opacity:0.5;">لا توجد فصول متوفرة بالعربية أو الإنجليزية حالياً.</p>';
+                    } else {
+                        list.innerHTML = ATHEER_ENV.ACTIVE_CH_LIST.map((ch, i) => `
+                            <div class="nav-btn" onclick="AtheerApp.initiateReader(${i})" style="justify-content: space-between; background: rgba(255,255,255,0.02);">
+                                <span>الفصل ${ch.attributes.chapter || '0'}</span>
+                                <span style="font-size:10px; background:var(--accent-secondary); color:#fff; padding:2px 7px; border-radius:4px;">${ch.attributes.translatedLanguage.toUpperCase()}</span>
+                            </div>
+                        `).join('');
+                    }
+                } catch (err) {
+                    list.innerHTML = '<p style="color:red; text-align:center;">خطأ في تحميل الفصول</p>';
+                }
+            },
+
+            async initiateReader(idx) {
+                const chapter = ATHEER_ENV.ACTIVE_CH_LIST[idx];
+                const reader = document.getElementById('reader-overlay');
+                const pBox = document.getElementById('reader-pages-box');
+                
+                closeModal();
+                reader.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+                
+                document.getElementById('reader-manga-title').innerText = ATHEER_ENV.ACTIVE_MANGA_TITLE;
+                document.getElementById('reader-current-ch').innerText = `الفصل ${chapter.attributes.chapter}`;
+                
+                pBox.innerHTML = '<div style="text-align:center; padding:100px;"><div class="loader-ring" style="display:inline-block;"></div><p style="margin-top:20px;">جاري تحضير الصفحات...</p></div>';
+
+                try {
+                    const res = await fetch(`${ATHEER_ENV.API_BASE}/at-home/server/${chapter.id}`);
+                    const json = await res.json();
+                    const hash = json.chapter.hash;
+                    const pageData = json.chapter.data;
+
+                    pBox.innerHTML = pageData.map(img => `
+                        <img src="${json.baseUrl}/data/${hash}/${img}" loading="lazy" alt="Manga Page">
+                    `).join('');
+                    
+                    this.saveToHistory(ATHEER_ENV.ACTIVE_MANGA_ID, ATHEER_ENV.ACTIVE_MANGA_TITLE, idx, chapter.attributes.chapter);
+                    pBox.scrollTop = 0;
+                } catch (err) {
+                    pBox.innerHTML = '<div style="text-align:center; padding:50px; color:red;">فشل تحميل محتوى الفصل.</div>';
+                }
+            },
+
+            // 6. Support Systems
+            saveToHistory(id, title, idx, label) {
+                const log = { id, title, idx, label, time: Date.now() };
+                localStorage.setItem('atheer_last_read', JSON.stringify(log));
+                this.checkUserHistory();
+            },
+
+            checkUserHistory() {
+                const raw = localStorage.getItem('atheer_last_read');
+                if (raw) {
+                    const data = JSON.parse(raw);
+                    document.getElementById('history-section').style.display = 'block';
+                    document.getElementById('hist-title').innerText = data.title;
+                    document.getElementById('hist-ch').innerText = `استكمال الفصل ${data.label}`;
+                    document.getElementById('resume-btn').onclick = () => {
+                        this.openMangaDetails(data.id, data.title).then(() => this.initiateReader(data.idx));
+                    };
+                }
+            },
+
+            resetToHome() {
+                ATHEER_ENV.CURRENT_GENRE = null;
+                ATHEER_ENV.SEARCH_TERM = '';
+                document.getElementById('current-view-title').innerText = 'أحدث الإضافات';
+                document.getElementById('main-search').value = '';
+                toggleSidebar(false);
+                this.fetchMangaData(true);
+            },
+
+            attachEventListeners() {
+                // Search Engine with Debounce
+                let sTimer;
+                document.getElementById('main-search').addEventListener('input', (e) => {
+                    clearTimeout(sTimer);
+                    sTimer = setTimeout(() => {
+                        ATHEER_ENV.SEARCH_TERM = e.target.value;
+                        ATHEER_ENV.CURRENT_GENRE = null;
+                        this.fetchMangaData(true);
+                    }, 800);
+                });
+
+                // Infinite Scroll Observer
+                window.addEventListener('scroll', () => {
+                    if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 1500) {
+                        this.fetchMangaData();
+                    }
+                });
+            },
+
+            closeReader() {
+                document.getElementById('reader-overlay').style.display = 'none';
+                document.body.style.overflow = 'auto';
+            },
+
+            reOpenDetailsFromReader() {
+                this.closeReader();
+                this.openMangaDetails(ATHEER_ENV.ACTIVE_MANGA_ID, ATHEER_ENV.ACTIVE_MANGA_TITLE);
+            },
+
+            showGlobalLoader(show) {
+                document.getElementById('boot-screen').style.display = show ? 'flex' : 'none';
+                document.getElementById('boot-screen').style.opacity = show ? '1' : '0';
+            },
+
+            showNotification(msg) {
+                console.log("System Notice: " + msg);
+            }
+        };
+
+        // UI Helpers
+        function toggleSidebar(state) {
+            document.getElementById('sidebar').classList.toggle('active', state);
+            document.getElementById('sidebar-dimmer').classList.toggle('show', state);
+        }
+
+        function closeModal() {
+            document.getElementById('details-modal').style.display = 'none';
+        }
+
+        // Start App
+        document.addEventListener('DOMContentLoaded', () => AtheerApp.initialize());
+
+    </script>
+
+    <footer style="background: var(--surface-deep); padding: 80px 5% 40px; border-top: 1px solid var(--border-thin); position: relative; z-index: 10;">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 40px; max-width: 1200px; margin: 0 auto;">
+            <div style="flex: 1; min-width: 250px;">
+                <h2 class="logo-text" style="color: var(--accent-primary); font-size: 2rem; margin-bottom: 20px;">Atheer</h2>
+                <p style="color: var(--text-muted); font-size: 13px; max-width: 350px; line-height: 1.8;">
+                    مشروع "أثير" هو نظام متطور لقراءة المانجا المترجمة، يعتمد على تقنيات الويب الحديثة لتوفير تجربة مستخدم سريعة وسلسة لجميع عشاق القصص المصورة.
+                </p>
+            </div>
+            
+            <div style="flex: 1; min-width: 150px;">
+                <h4 style="margin-bottom: 20px; font-size: 14px; text-transform: uppercase; letter-spacing: 2px;">روابط سريعة</h4>
+                <ul style="list-style: none; color: var(--text-muted); font-size: 13px;">
+                    <li style="margin-bottom: 10px; cursor: pointer;" onclick="AtheerApp.resetToHome()">الرئيسية</li>
+                    <li style="margin-bottom: 10px; cursor: pointer;" onclick="toggleSidebar(true)">التصنيفات</li>
+                    <li style="margin-bottom: 10px; cursor: pointer;">سياسة الخصوصية</li>
+                </ul>
+            </div>
+
+            <div style="flex: 1; min-width: 200px;">
+                <h4 style="margin-bottom: 20px; font-size: 14px; text-transform: uppercase; letter-spacing: 2px;">المطور</h4>
+                <p style="color: var(--text-muted); font-size: 13px;">Developed with ❤️ by Haitheem</p>
+                <p style="font-size: 11px; color: #333; margin-top: 10px;">Kernel Version: 5.2.0-STABLE | Lost Mist Studios</p>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 60px; padding-top: 30px; border-top: 1px solid #111;">
+            <p style="font-size: 10px; color: #444; letter-spacing: 5px;">&copy; 2026 ATHEER MANGA PLATFORM | ALL RIGHTS RESERVED</p>
+        </div>
+    </footer>
+
+    <script async="async" data-cfasync="false" src="https://pl29231045.profitablecpmratenetwork.com/e317e52d52b645e081cf37d4bb3ef5b5/invoke.js"></script>
+</body>
+</html>
